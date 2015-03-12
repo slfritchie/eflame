@@ -9,43 +9,9 @@
           count=0,
           acc=[]}). % per-process state
 
-%% Example use, for 'all' processes in Riak for 10 seconds.  Run on a
-%% moderately busy Riak server created 1GByte of trace data, beware.
-%%
-%% Step 0: Compile with "rebar compile", then copy eflame.beam to
-%%         someplace accessible such as /tmp.  Then run:
-%%
-%%    code:add_pathz("/tmp").
-%%
-%% Step 1: Get your workload running, e.g. for Riak.  Then run:
-%%
-%%    eflame2:write_trace(like_fprof, "/tmp/ef.test.0", all,
-%%                        timer, sleep, [10*1000]).
-%%
-%% Step 2: Format the binary trace to text output.
-%%
-%%    eflame2:format_trace("/tmp/ef.test.0", "/tmp/ef.test.0.out").
-%%
-%% Step 3: Convert text output to SVG.  Note that this script does *NOT*
-%%         require processing by "stack_to_flame.sh".
-%%
-%%  Everything:
-%%
-%%    cat /tmp/ef.test.0.out | ./flamegraph.riak-color.pl > output.svg
-%%
-%%  Only pids <0.1102.0> and <0.1104.0> ... note that the "<>" characters
-%%  in the PID do *not* appear in the output:
-%%
-%%    egrep '0\.1102\.0|0\.1104\.0' /tmp/ef.test.0.out | \
-%%        ./flamegraph.riak-color.pl > output.svg
-%%
-%%  Only pids <0.1102.0> and <0.1104.0> and also removing sleep time:
-%%
-%%    egrep '0\.1102\.0|0\.1104\.0' /tmp/ef.test.0.out | \
-%%        grep -v 'SLEEP ' | \
-%%        ./flamegraph.riak-color.pl > output.svg
+%% See 'Example usage' section of ../README.md
 
-%% PidSpec = pid() | [pid()] | existing | new | all
+%% NOTE: PidSpec = pid() | [pid()] | existing | new | all
 
 write_trace(Mode, IntermediateFile, PidSpec, M, F, A) ->
     write_trace2(normal, Mode, IntermediateFile, PidSpec, M, F, A).
