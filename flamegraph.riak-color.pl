@@ -98,6 +98,7 @@ my $pal_file = "palette.map";   # palette map file name
 my $stackreverse = 0;           # reverse stack order, switching merge end
 my $inverted = 0;               # icicle graph
 my $negate = 0;                 # switch differential hues
+my $seed = time;                # random seed is a bit random
 my $titletext = "";             # centered heading
 my $titledefault = "Flame Graph";	# overwritten by --title
 my $titleinverted = "Icicle Graph";	#   "    "
@@ -122,6 +123,7 @@ GetOptions(
 	'reverse'     => \$stackreverse,
 	'inverted'    => \$inverted,
 	'negate'      => \$negate,
+	'seed=i'      => \$seed,
 ) or die <<USAGE_END;
 USAGE: $0 [options] infile > outfile.svg\n
 	--title       # change title text
@@ -139,6 +141,7 @@ USAGE: $0 [options] infile > outfile.svg\n
 	--reverse     # generate stack-reversed flame graph
 	--inverted    # icicle graph
 	--negate      # switch differential hues (blue<->red)
+	--seed        # srand() seed integer
 
 	eg,
 	$0 --title="Flame Graph: malloc()" trace.txt > graph.svg
@@ -152,6 +155,8 @@ my $framepad = 1;		# vertical padding for frames
 my $depthmax = 0;
 my %Events;
 my %nameattr;
+
+srand($seed);
 
 if ($titletext eq "") {
 	unless ($inverted) {
@@ -819,6 +824,10 @@ while (my ($id, $node) = each %Node) {
 	} elsif ($func =~ /riak_cs/) {
 		$color = color("aqua", $hash, $func);
 	} elsif ($func =~ /riak/) {
+		$color = color("green", $hash, $func);
+	} elsif ($func =~ /snappy/i) {
+		$color = color("aqua", $hash, $func);
+	} elsif ($func =~ /leveldb/i) {
 		$color = color("green", $hash, $func);
 	} elsif (defined $delta) {
 		$color = color_scale($delta, $maxdelta);
