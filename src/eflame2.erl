@@ -22,10 +22,9 @@
 %%    eflame2:write_trace(like_fprof, "/tmp/ef.test.0", all,
 %%                        timer, sleep, [10*1000]).
 %%
-%% Step 2: Convert the binary trace to text output.
+%% Step 2: Format the binary trace to text output.
 %%
-%%    Acc = eflame2:exp1_init("/tmp/ef.test.0.out").
-%%    dbg:trace_client(file, "/tmp/ef.test.0", {fun eflame2:exp1/2, Acc}).
+%%    eflame2:format_trace("/tmp/ef.test.0", "/tmp/ef.test.0.out").
 %%
 %% Step 3: Convert text output to SVG.  Note that this script does *NOT*
 %%         require processing by "stack_to_flame.sh".
@@ -47,22 +46,34 @@
 %%        ./flamegraph.riak-color.pl > output.svg
 
 %% PidSpec = pid() | [pid()] | existing | new | all
+
 write_trace(Mode, IntermediateFile, PidSpec, M, F, A) ->
+    write_trace2(normal, Mode, IntermediateFile, PidSpec, M, F, A).
+
+write_trace_backtrace(Mode, IntermediateFile, PidSpec, M, F, A) ->
+    write_trace2(backtrace, Mode, IntermediateFile, PidSpec, M, F, A).
+
+write_trace2(Style, Mode, IntermediateFile, PidSpec, M, F, A) ->
     {ok, Tracer} = start_tracer(IntermediateFile),
     io:format(user, "Tracer ~p\n", [Tracer]),
     io:format(user, "self() ~p\n", [self()]),
 
-    start_trace(Tracer, PidSpec, Mode),
+    start_trace(Style, Tracer, PidSpec, Mode),
     Return = (catch erlang:apply(M, F, A)),
     stop_trace(Tracer, PidSpec),
 
     %% ok = file:write_file(OutputFile, Bytes),
     Return.
 
-start_trace(_Tracer, PidSpec, Mode) ->
+start_trace(normal, _Tracer, PidSpec, Mode) ->
     MatchSpec = [{'_',[],[{message,{process_dump}}]}],
-    %% MatchSpec = [{'_',[],[{return_trace}]}],
+    start_trace2(_Tracer, PidSpec, Mode, MatchSpec);
+start_trace(backtrace, _Tracer, PidSpec, Mode) ->
+    io:format("\n\nYEAH, using the new hackery!\n\n"),
+    MatchSpec = [{'_',[],[{message,{process_backtrace}}]}],
+    start_trace2(_Tracer, PidSpec, Mode, MatchSpec).
 
+start_trace2(_Tracer, PidSpec, Mode, MatchSpec) ->
     _X2b = dbg:tpl('_', '_', MatchSpec),
     io:format("X2b ~p\n", [_X2b]),
     if is_list(PidSpec) ->
@@ -79,6 +90,13 @@ stop_trace(Tracer, _PidSpec) ->
     (catch dbg:stop_clear()),
     (exit(Tracer, normal)),
     ok.
+
+format_trace(InFile) ->
+    format_trace(InFile, InFile ++ ".out").
+
+format_trace(InFile, OutFile) ->
+    Acc = exp1_init(OutFile),
+    dbg:trace_client(file, InFile, {fun exp1/2, Acc}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
