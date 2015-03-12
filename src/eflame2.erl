@@ -358,23 +358,20 @@ stak(Bin) ->
 
 munge(I,Out) ->
   case I of %% lists:reverse(I) of
-      "..."++_ ->
-          ["truncated!!!"|Out];
-      "Program counter: "++_ ->
-          [mfaf(I)|Out];
-      _ ->
-          case string:str(I, "Return addr") of
-              0 ->
-                  case string:str(I, "cp = ") of
-                      0 -> Out;
-                      _ -> [mfaf(I)|Out]
-                  end;
-              _ ->
-                  case string:str(I, "erminate process normal") of
-                      0 -> [mfaf(I)|Out];
-                      _ -> Out
-                  end
+    "..."++_ -> ["truncated!!!"|Out];
+    _ ->
+      case string:str(I, "Return addr") of
+        0 ->
+          case string:str(I, "cp = ") of
+            0 -> Out;
+            _ -> [mfaf(I)|Out]
+          end;
+        _ ->
+          case string:str(I, "erminate process normal") of
+            0 -> [mfaf(I)|Out];
+            _ -> Out
           end
+      end
   end.
 
 mfaf(I) ->
