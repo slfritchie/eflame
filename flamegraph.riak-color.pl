@@ -123,7 +123,7 @@ GetOptions(
 	'reverse'     => \$stackreverse,
 	'inverted'    => \$inverted,
 	'negate'      => \$negate,
-        'seed'        => \$seed,
+        'seed=i'      => \$seed,
 ) or die <<USAGE_END;
 USAGE: $0 [options] infile > outfile.svg\n
 	--title       # change title text
@@ -819,6 +819,18 @@ while (my ($id, $node) = each %Node) {
 	my $color;
 	if ($func eq "-") {
 		$color = $vdgrey;
+        } elsif ($func eq "sleep" || $func eq "SLEEP") {
+		$color = color("blue", $hash, $func);
+        } elsif ($func =~ /riak_cs/) {
+		$color = color("aqua", $hash, $func);
+        } elsif ($func =~ /riak/) {
+		$color = color("green", $hash, $func);
+        } elsif ($func =~ /snappy/i) {
+		$color = color("aqua", $hash, $func);
+        } elsif ($func =~ /leveldb/i) {
+		$color = color("aqua", $hash, $func);
+        } elsif ($func =~ /bitcask/i) {
+		$color = color("yellow", $hash, $func);
 	} elsif (defined $delta) {
 		$color = color_scale($delta, $maxdelta);
 	} elsif ($palette) {
