@@ -1,5 +1,14 @@
 -module(eflame2).
--export([write_trace/6, write_trace_backtrace/6]).
+
+%% Public API
+-export([%% 1st phase: generate a binary trace
+         write_trace/4, write_trace/6,
+         %% The following forms used with experimental VM only!
+         write_trace_exp/4, write_trace_exp/6,
+
+         %% 2nd phase: convert binary trace to an ASCII trace
+         format_trace/1, format_trace/2]).
+-export([help/0, custom_trace_flags/0]).
 -compile(export_all). %% SLF debugging
 
 -record(state, {
@@ -9,22 +18,22 @@
           count=0,
           acc=[]}). % per-process state
 
-%% See 'Example usage' section of ../README.md
+%% For help & use recommendations, run help().
 
+write_trace(Mode, BinaryFile, PidSpec, SleepMSecs) when is_number(SleepMSecs) ->
+    write_trace(Mode, BinaryFile, PidSpec, timer, sleep, [SleepMSecs]).
 
-%% NOTE: Mode::pidspec() = custom_trace_flags() |
-%%                         pid() | [pid()] | existing | new | all
-%%  custom_trace_flags() = [custom_trace_flag()]
-%%   custom_trace_flag() = 'global_calls_only'.
+write_trace(Mode, BinaryFile, PidSpec, M, F, A) ->
+    write_trace2(normal, Mode, BinaryFile, PidSpec, M, F, A).
 
-write_trace(Mode, IntermediateFile, PidSpec, M, F, A) ->
-    write_trace2(normal, Mode, IntermediateFile, PidSpec, M, F, A).
+write_trace_exp(Mode, BinaryFile, PidSpec, SleepMSecs) when is_number(SleepMSecs) ->
+    write_trace_exp(Mode, BinaryFile, PidSpec, timer, sleep, [SleepMSecs]).
 
-write_trace_backtrace(Mode, IntermediateFile, PidSpec, M, F, A) ->
-    write_trace2(backtrace, Mode, IntermediateFile, PidSpec, M, F, A).
+write_trace_exp(Mode, BinaryFile, PidSpec, M, F, A) ->
+    write_trace2(backtrace, Mode, BinaryFile, PidSpec, M, F, A).
 
-write_trace2(Style, Mode, IntermediateFile, PidSpec, M, F, A) ->
-    {ok, Tracer} = start_tracer(IntermediateFile),
+write_trace2(Style, Mode, BinaryFile, PidSpec, M, F, A) ->
+    {ok, Tracer} = start_tracer(BinaryFile),
     io:format(user, "Tracer ~p\n", [Tracer]),
     io:format(user, "self() ~p\n", [self()]),
 
@@ -44,13 +53,18 @@ start_trace(backtrace, _Tracer, PidSpec, Mode) ->
     start_trace2(_Tracer, PidSpec, Mode, MatchSpec).
 
 start_trace2(_Tracer, PidSpec, Mode, MatchSpec) ->
-    _X2b = case is_list(Mode) andalso lists:member(global_calls_only, Mode) of
-               false ->
-                   {local_and_global_calls, dbg:tpl('_', '_', MatchSpec)};
+    Verb = case is_list(Mode) andalso lists:member(global_and_local_calls, Mode) of
                true ->
-                   {global_calls_only, dbg:tp('_', '_', MatchSpec)}
+                   {v_global_and_local_calls, dbg:tpl('_', '_', MatchSpec)};
+               false ->
+                   if Mode == 'global_and_local_calls' orelse
+                      Mode == 'global_and_local_calls_plus_new_procs'  ->
+                           {v_global_and_local_calls, dbg:tpl('_', '_', MatchSpec)};
+                      true ->
+                           {v_global_calls_only, dbg:tp('_', '_', MatchSpec)}
+                   end
            end,
-    io:format("X2b ~p\n", [_X2b]),
+    io:format("Starting tracer results: ~p\n", [Verb]),
     if is_list(PidSpec) ->
             [dbg:p(PS, trace_flags(Mode)) || PS <- PidSpec];
        true ->
@@ -66,12 +80,12 @@ stop_trace(Tracer, _PidSpec) ->
     (exit(Tracer, normal)),
     ok.
 
-format_trace(InFile) ->
-    format_trace(InFile, InFile ++ ".out").
+format_trace(BinaryFile) ->
+    format_trace(BinaryFile, BinaryFile ++ ".out").
 
-format_trace(InFile, OutFile) ->
+format_trace(BinaryFile, OutFile) ->
     Acc = exp1_init(OutFile),
-    dbg:trace_client(file, InFile, {fun exp1/2, Acc}).
+    dbg:trace_client(file, BinaryFile, {fun exp1/2, Acc}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -108,7 +122,7 @@ exp1(end_of_trace = _Else, #state{output_path=OutputPath} = OuterS) ->
          end || {Stack, Time} <- Acc]
      || {Pid, #state{acc=Acc} = _S} <- PidStates],
     file:close(FH),
-    io:format("finished\n"),
+    io:format("finished!\n"),
     OuterS;
 exp1(T, #state{output_path=OutputPath} = S) ->
     trace_ts = element(1, T),
@@ -286,24 +300,52 @@ find_matching_stack2(_MFA_bin, []) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-start_tracer(IntermediateFile) ->
-    dbg:tracer(port, dbg:trace_port(file, IntermediateFile)).
+start_tracer(BinaryFile) ->
+    dbg:tracer(port, dbg:trace_port(file, BinaryFile)).
 
-trace_flags(not_running) ->
-    [call, arity, return_to, timestamp];
-trace_flags(normal) ->
+help() ->
+    io:format("
+    Usage: 1st phase: Generate a binary trace
+
+        ~s:write_trace(Mode, BinaryFile, PidSpec, SleepMSecs)
+        ~s:write_trace(Mode, BinaryFile, PidSpec, M, F, A)
+        %% The following forms used with experimental VM only!
+        ~s:write_trace_exp(Mode, BinaryFile, PidSpec, SleepMSecs)
+        ~s:write_trace_exp(Mode, BinaryFile, PidSpec, M, F, A)
+
+    Mode = 'global_calls' | 'global_calls_plus_new_procs' |
+           'global_and_local_calls' | 'global_and_local_calls_plus_new_procs' |
+           erlang_trace_flags()
+    erlang_trace_flags() = See OTP docs for erlang:trace() BIF
+
+    PidSpec = 'all' | 'existing' | 'new' | pid() | [pid()]
+
+    To trace current pid and execution of {M,F,A} only, we suggest:
+        ~s:write_trace(Mode, BinaryFile, self(), M, F, A)
+
+    To trace all pids and gather traces on all pids for some time, we suggest:
+        ~s:write_trace(Mode, BinaryFile, PidSpec, SleepMSecs)
+
+    Usage: 2nd phase: Convert a binary trace to an ASCII trace
+
+        ~s:format_trace(BinaryFile).  % output = input ++ \".out\"
+      or else
+        ~s:format_trace(BinaryFile, OutputFile).
+
+        Remember to wait for 'finished!' message!
+", [?MODULE || _ <- lists:seq(1, 8)]).
+
+trace_flags(Mode) when Mode == global_calls; Mode == global_and_local_calls ->
     [call, arity, return_to, timestamp, running];
-trace_flags(normal_with_children) ->
+trace_flags(Mode) when Mode == global_calls_plus_new_procs; Mode == global_and_local_calls_plus_new_procs ->
     [call, arity, return_to, timestamp, running, set_on_spawn];
-trace_flags(like_fprof) ->
-    [call, arity, return_to, timestamp, running, set_on_spawn, garbage_collection];
-trace_flags(List) when is_list(List) ->
+trace_flags(Mode) when is_list(Mode) ->
     io:format(user, "\nWARNING: we assume that you know what you're doing "
-              "when\nspecifying trace_flags(~w)\n", [List]),
-    List -- custom_trace_flags().
+              "when\nspecifying trace_flags(Mode=~w)\n", [Mode]),
+    Mode -- custom_trace_flags().
 
 custom_trace_flags() ->
-    [global_calls_only].
+    [global_and_local_calls, global_calls_only].
 
 entry_to_iolist({M, F, A}) ->
     [atom_to_binary(M, utf8), <<":">>, atom_to_binary(F, utf8), <<"/">>, integer_to_list(A)];

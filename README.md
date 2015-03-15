@@ -53,6 +53,11 @@ all of the following commands in this example) on the Riak console:
 
    code:add_pathz("/tmp").
 
+### Step 0: Whenever you need a quick reference guide
+
+Run the function `eflame2:help()` for a quick reference guide,
+whenever you need it.
+
 ### Step 1: Start a workload, then start eflame2 tracing.
 
 Get your workload running.  In this example, we're using Riak.  The
@@ -68,7 +73,7 @@ seconds of activity by all processes:
 
    spawn(fun() ->
        io:format("Tracing started...\n"),
-       eflame2:write_trace(like_fprof, "/tmp/ef.test.0", all, timer, sleep, [10*1000]),
+       eflame2:write_trace(global_calls_plus_new_procs, "/tmp/ef.test.0", all, 10*1000),
        io:format("Tracing finished!\n")
     end).
 
@@ -83,7 +88,7 @@ run; the 2nd argument names the output file.
 The 3rd argument specifies which Erlang processes to trace.  Valid
 `PidSpec` types for this argument are:
 
-    pid() | [pid()] | 'existing' | 'new' | 'all'
+    'all' | 'existing' | 'new' | pid() | [pid()]
 
 ### Step 2: Format the binary trace data into text call stack output.
 
