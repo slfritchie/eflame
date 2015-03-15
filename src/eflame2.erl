@@ -1,5 +1,5 @@
 -module(eflame2).
--export([write_trace/6]).
+-export([write_trace/6, write_trace_backtrace/6]).
 -compile(export_all). %% SLF debugging
 
 -record(state, {
@@ -11,7 +11,11 @@
 
 %% See 'Example usage' section of ../README.md
 
-%% NOTE: PidSpec = pid() | [pid()] | existing | new | all
+
+%% NOTE: Mode::pidspec() = custom_trace_flags() |
+%%                         pid() | [pid()] | existing | new | all
+%%  custom_trace_flags() = [custom_trace_flag()]
+%%   custom_trace_flag() = 'global_calls_only'.
 
 write_trace(Mode, IntermediateFile, PidSpec, M, F, A) ->
     write_trace2(normal, Mode, IntermediateFile, PidSpec, M, F, A).
@@ -40,7 +44,12 @@ start_trace(backtrace, _Tracer, PidSpec, Mode) ->
     start_trace2(_Tracer, PidSpec, Mode, MatchSpec).
 
 start_trace2(_Tracer, PidSpec, Mode, MatchSpec) ->
-    _X2b = dbg:tpl('_', '_', MatchSpec),
+    _X2b = case is_list(Mode) andalso lists:member(global_calls_only, Mode) of
+               false ->
+                   {local_and_global_calls, dbg:tpl('_', '_', MatchSpec)};
+               true ->
+                   {global_calls_only, dbg:tp('_', '_', MatchSpec)}
+           end,
     io:format("X2b ~p\n", [_X2b]),
     if is_list(PidSpec) ->
             [dbg:p(PS, trace_flags(Mode)) || PS <- PidSpec];
@@ -282,12 +291,19 @@ start_tracer(IntermediateFile) ->
 
 trace_flags(not_running) ->
     [call, arity, return_to, timestamp];
-trace_flags(normal) ->%%%%%%%%%%%%%%%%%%%%%%%% YEAH
+trace_flags(normal) ->
     [call, arity, return_to, timestamp, running];
 trace_flags(normal_with_children) ->
     [call, arity, return_to, timestamp, running, set_on_spawn];
-trace_flags(like_fprof) -> % fprof does this as 'normal', will not work!
-    [call, arity, return_to, timestamp, running, set_on_spawn, garbage_collection].
+trace_flags(like_fprof) ->
+    [call, arity, return_to, timestamp, running, set_on_spawn, garbage_collection];
+trace_flags(List) when is_list(List) ->
+    io:format(user, "\nWARNING: we assume that you know what you're doing "
+              "when\nspecifying trace_flags(~w)\n", [List]),
+    List -- custom_trace_flags().
+
+custom_trace_flags() ->
+    [global_calls_only].
 
 entry_to_iolist({M, F, A}) ->
     [atom_to_binary(M, utf8), <<":">>, atom_to_binary(F, utf8), <<"/">>, integer_to_list(A)];
