@@ -123,7 +123,7 @@ GetOptions(
 	'reverse'     => \$stackreverse,
 	'inverted'    => \$inverted,
 	'negate'      => \$negate,
-	'seed=i'      => \$seed,
+        'seed'        => \$seed,
 ) or die <<USAGE_END;
 USAGE: $0 [options] infile > outfile.svg\n
 	--title       # change title text
@@ -141,7 +141,7 @@ USAGE: $0 [options] infile > outfile.svg\n
 	--reverse     # generate stack-reversed flame graph
 	--inverted    # icicle graph
 	--negate      # switch differential hues (blue<->red)
-	--seed        # srand() seed integer
+        --seed        # srand() seed integer
 
 	eg,
 	$0 --title="Flame Graph: malloc()" trace.txt > graph.svg
@@ -819,16 +819,6 @@ while (my ($id, $node) = each %Node) {
 	my $color;
 	if ($func eq "-") {
 		$color = $vdgrey;
-	} elsif ($func eq "sleep" || $func eq "SLEEP") {
-		$color = color("blue", $hash, $func);
-	} elsif ($func =~ /riak_cs/) {
-		$color = color("aqua", $hash, $func);
-	} elsif ($func =~ /riak/) {
-		$color = color("green", $hash, $func);
-	} elsif ($func =~ /snappy/i) {
-		$color = color("aqua", $hash, $func);
-	} elsif ($func =~ /leveldb/i) {
-		$color = color("green", $hash, $func);
 	} elsif (defined $delta) {
 		$color = color_scale($delta, $maxdelta);
 	} elsif ($palette) {
