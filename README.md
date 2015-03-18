@@ -17,7 +17,7 @@ ease-of-use for profiling a single function call in a single process.
 work as a base for several experiments.
 
 1. Generate flame graph data for multi-process systems, e.g.
-the [Riak](https://github.com/basho/riak database.  Such flame graphs
+the [Riak](https://github.com/basho/riak) database.  Such flame graphs
 can give analysis on a process-by-process basis.
 
 2. Generate flame graph data based on experimental Erlang VM (virtual
