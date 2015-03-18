@@ -13,7 +13,7 @@ the original
 [eflame](https://github.com/proger/eflame) source.  Its API focuses on
 ease-of-use for profiling a single function call in a single process.
 
-[Scott Lystig Fritchie](https://github.com/slfritchie/ uses Vlad's
+[Scott Lystig Fritchie](https://github.com/slfritchie/) uses Vlad's
 work as a base for several experiments.
 
 1. Generate flame graph data for multi-process systems, e.g.
@@ -29,8 +29,8 @@ information.
 to support time-sampling, e.g. stack traces that are generated every
 100 milliseconds.  Time sampling, which is the base technique for
 tools such as
-(gprof)[http://en.wikipedia.org/wiki/Gprof] and by
-(DTrace stack() and ustack())[http://en.wikipedia.org/wiki/DTrace],
+[gprof](http://en.wikipedia.org/wiki/Gprof) and by
+[DTrace stack() and ustack()](http://en.wikipedia.org/wiki/DTrace),
 have very low overhead when compared to the Erlang VM's function call
 tracing.  (This method also requires a custom-patched Erlang VM.)
 
@@ -51,7 +51,7 @@ Next, copy `eflame.beam` and `eflame2.beam` to someplace accessible
 on the target Riak machine, such as `/tmp`.  Then run this command (and
 all of the following commands in this example) on the Riak console:
 
-   code:add_pathz("/tmp").
+    code:add_pathz("/tmp").
 
 ### Step 0: Whenever you need a quick reference guide
 
@@ -71,7 +71,7 @@ Whatever the workload is that you wish to profile, start it.  Then,
 while the load is still running, use this command to capture 10
 seconds of activity by all processes:
 
-   spawn(fun() ->
+    spawn(fun() ->
        io:format("Tracing started...\n"),
        eflame2:write_trace(global_calls_plus_new_procs, "/tmp/ef.test.0", all, 10*1000),
        io:format("Tracing finished!\n")
@@ -94,7 +94,7 @@ The 3rd argument specifies which Erlang processes to trace.  Valid
 
 Run this:
 
-   eflame2:format_trace("/tmp/ef.test.0", "/tmp/ef.test.0.out").
+    eflame2:format_trace("/tmp/ef.test.0", "/tmp/ef.test.0.out").
 
 This function can take several seconds to finish processing a 30 MByte
 input file, so please be patient.  The output will look something like
@@ -123,7 +123,7 @@ items separated by a semicolon: the first item is the Erlang PID that
 generated the trace event, and all other items are the Erlang function
 names on the call stack at that time.
 
-Step 3 (optional): Massage the call stack output into something more convenient
+### Step 3 (optional): Massage the call stack output into something more convenient
 
 Perhaps you are only interested in a single process's activity.  If
 that's true, then don't use the `all` PidSpec in step #1: specify the
@@ -147,9 +147,9 @@ use a command like this to filter out all other PIDs:
 
 ... and then use the filtered file in step #4 below.  The result will be
 
-Step 4: Convert text call stack output to SVG.
+### Step 4: Convert text call stack output to SVG.
 
-   cat /tmp/ef.test.0.out | ./flamegraph.riak-color.pl > output.svg
+    cat /tmp/ef.test.0.out | ./flamegraph.riak-color.pl > output.svg
 
 Then open the `output.svg` file using an SVG-aware application, e.g.
 Firefox.
@@ -162,12 +162,12 @@ Step 5: Variations of step #4
 Only pids <0.1102.0> and <0.1104.0> ... note that the "<>" characters
 in the PID do *not* appear in the output:
 
-   egrep '0\.1102\.0|0\.1104\.0' /tmp/ef.test.0.out | \
+    egrep '0\.1102\.0|0\.1104\.0' /tmp/ef.test.0.out | \
        ./flamegraph.riak-color.pl > output.svg
 
 Only pids <0.1102.0> and <0.1104.0> and also removing sleep time:
 
-   egrep '0\.1102\.0|0\.1104\.0' /tmp/ef.test.0.out | \
+    egrep '0\.1102\.0|0\.1104\.0' /tmp/ef.test.0.out | \
        grep -v 'SLEEP ' | \
        ./flamegraph.riak-color.pl > output.svg
 
