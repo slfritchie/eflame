@@ -107,8 +107,7 @@ the following -- please wait until you see the "finished" message!
 
 The output file, the 2nd argument, will look something like this:
 
-    (0.1515.0);riak_core_stat_calc_proc:'-do_calc_stat/1-fun-0-'/2;folsom_metrics:ge
-    t_metric_value/1 28
+    (0.1515.0);riak_core_stat_calc_proc:'-do_calc_stat/1-fun-0-'/2;folsom_metrics:get_metric_value/1 28
     (0.1515.0);riak_core_stat_q:calc_stat/1 36
     (0.1515.0);riak_core_stat_calc_proc:'-do_calc_stat/1-fun-0-'/2 20
     (0.1515.0);erlang:apply/2 16
@@ -143,7 +142,7 @@ of a call stack), all other call stacks will be excluded.  Use the
 Once you've identified a specific PID to examine more closely, you can
 use a command like this to filter out all other PIDs:
 
-    egrep ".0\.251\.0.;" /tmp/ef.test.0.out > /tmp/ef.test.0.out.only-0.329.0
+    egrep "0\.251\.0.;" /tmp/ef.test.0.out > /tmp/ef.test.0.out.only-0.329.0
 
 ... and then use the filtered file in step #4 below.  The result will be
 
@@ -157,9 +156,9 @@ Firefox.
 **NOTE**: The output of `eflame2` **does not require** processing by
 the `stack_to_flame.sh` script.
 
-Step 5: Variations of step #4
+### Step 5: Variations of step #4
 
-Only pids <0.1102.0> and <0.1104.0> ... note that the "<>" characters
+Only pids &lt;0.1102.0> and &lt;0.1104.0> ... note that the "<>" characters
 in the PID do *not* appear in the output:
 
     egrep '0\.1102\.0|0\.1104\.0' /tmp/ef.test.0.out | \
@@ -173,7 +172,10 @@ Only pids <0.1102.0> and <0.1104.0> and also removing sleep time:
 
 Other examples are available in the 'More Examples' section below.
 
-Step 6: Follow the tutorial in [README-Riak-Example.md](README-Riak-Example.md).
+### Step 6: Follow the tutorial in README-Riak-Example.md
+
+For additional reading, see the Riak-centric tutorial in
+[README-Riak-Example.md](README-Riak-Example.md).  
 
 ----------------
 ----------------

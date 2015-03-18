@@ -1,6 +1,10 @@
 
 # A detailed example of investigations using flame graphs and Riak
 
+NOTE: This is a continuation of the 6-step example from the
+[README.md](README.md) file.  Please read it first before continuing
+with the tutorial here.
+
 In our very first example, as described in
 [README.md](README.md), we generated a flame graph for all Riak
 processes that were executing during:
