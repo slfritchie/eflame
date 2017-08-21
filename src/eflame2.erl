@@ -26,7 +26,8 @@
           pid,
           last_ts,
           count=0,
-          acc=[]}). % per-process state
+          acc=[],
+          caller}). % per-process state
 
 %% For help & use recommendations, run help().
 
@@ -115,7 +116,8 @@ format_trace(BinaryFile) ->
 
 format_trace(BinaryFile, OutFile) ->
     Acc = exp1_init(OutFile),
-    dbg:trace_client(file, BinaryFile, {fun exp1/2, Acc}).
+    dbg:trace_client(file, BinaryFile, {fun exp1/2, Acc}),
+    receive ok -> ok end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -135,9 +137,10 @@ exp0(Else, _Acc) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 exp1_init(OutputPath) ->
-    #state{output_path=OutputPath}.
+    #state{output_path=OutputPath,
+           caller=self()}.
 
-exp1(end_of_trace = _Else, #state{output_path=OutputPath} = OuterS) ->
+exp1(end_of_trace = _Else, #state{output_path=OutputPath, caller=Caller} = OuterS) ->
     (catch erlang:delete(hello_world)),
     PidStates = get(),
     {ok, FH} = file:open(OutputPath, [write, raw, binary, delayed_write]),
@@ -153,6 +156,7 @@ exp1(end_of_trace = _Else, #state{output_path=OutputPath} = OuterS) ->
      || {Pid, #state{acc=Acc} = _S} <- PidStates],
     file:close(FH),
     io:format("finished!\n"),
+    Caller ! ok,
     OuterS;
 exp1(T, #state{output_path=OutputPath} = S) ->
     trace_ts = element(1, T),
