@@ -8,15 +8,26 @@
 
          %% 2nd phase: convert binary trace to an ASCII trace
          format_trace/1, format_trace/2]).
+-export([%% same as 1st phase, but does not block on MFA
+         %% instead, it returns the `Tracer'
+         start/3,
+         start_exp/3,
+
+         %% receive as first argument the `Tracer' to be stopped
+         %% `stop/2' and `stop/3' besides stopping the `Tracer',
+         %% they also format the output using `format_trace'
+         stop/1, stop/2, stop/3]).
+
 -export([help/0, custom_trace_flags/0]).
--compile(export_all). %% SLF debugging
+-compile([nowarn_export_all, export_all]). %% SLF debugging
 
 -record(state, {
           output_path="",
           pid,
           last_ts,
           count=0,
-          acc=[]}). % per-process state
+          acc=[],
+          caller}). % per-process state
 
 %% For help & use recommendations, run help().
 
@@ -32,27 +43,47 @@ write_trace_exp(Mode, BinaryFile, PidSpec, SleepMSecs) when is_number(SleepMSecs
 write_trace_exp(Mode, BinaryFile, PidSpec, M, F, A) ->
     write_trace2(backtrace, Mode, BinaryFile, PidSpec, M, F, A).
 
+start(Mode, BinaryFile, PidSpec) ->
+    do_start(normal, Mode, BinaryFile, PidSpec).
+
+start_exp(Mode, BinaryFile, PidSpec) ->
+    do_start(backtrace, Mode, BinaryFile, PidSpec).
+
+stop(Tracer) ->
+    stop_trace(Tracer).
+
+stop(Tracer, BinaryFile) ->
+    stop(Tracer),
+    format_trace(BinaryFile).
+
+stop(Tracer, BinaryFile, OutFile) ->
+    stop(Tracer),
+    format_trace(BinaryFile, OutFile).
+
 write_trace2(Style, Mode, BinaryFile, PidSpec, M, F, A) ->
-    {ok, Tracer} = start_tracer(BinaryFile),
+    Tracer = do_start(Style, Mode, BinaryFile, PidSpec),
     io:format(user, "Tracer ~p\n", [Tracer]),
     io:format(user, "self() ~p\n", [self()]),
 
-    start_trace(Style, Tracer, PidSpec, Mode),
     Return = (catch erlang:apply(M, F, A)),
-    stop_trace(Tracer, PidSpec),
+    stop(Tracer),
 
     %% ok = file:write_file(OutputFile, Bytes),
     Return.
 
-start_trace(normal, _Tracer, PidSpec, Mode) ->
-    MatchSpec = [{'_',[],[{message,{process_dump}}]}],
-    start_trace2(_Tracer, PidSpec, Mode, MatchSpec);
-start_trace(backtrace, _Tracer, PidSpec, Mode) ->
-    io:format("\n\nYEAH, using the new hackery!\n\n"),
-    MatchSpec = [{'_',[],[{message,{process_backtrace}}]}],
-    start_trace2(_Tracer, PidSpec, Mode, MatchSpec).
+do_start(Style, Mode, BinaryFile, PidSpec) ->
+    {ok, Tracer} = start_tracer(BinaryFile),
+    MatchSpec = match_spec(Style),
+    start_trace(Mode, PidSpec, MatchSpec),
+    Tracer.
 
-start_trace2(_Tracer, PidSpec, Mode, MatchSpec) ->
+match_spec(normal) ->
+    [{'_', [], [{message, {process_dump}}]}];
+match_spec(backtrace) ->
+    io:format("\n\nYEAH, using the new hackery!\n\n"),
+    [{'_', [], [{message, {process_backtrace}}]}].
+
+start_trace(Mode, PidSpec, MatchSpec) ->
     Verb = case is_list(Mode) andalso lists:member(global_and_local_calls, Mode) of
                true ->
                    {v_global_and_local_calls, dbg:tpl('_', '_', MatchSpec)};
@@ -72,7 +103,7 @@ start_trace2(_Tracer, PidSpec, Mode, MatchSpec) ->
     end,
     ok.
 
-stop_trace(Tracer, _PidSpec) ->
+stop_trace(Tracer) ->
     _X00 = dbg:flush_trace_port(),
     (catch dbg:ctp()),
     (catch dbg:stop()),
@@ -85,7 +116,8 @@ format_trace(BinaryFile) ->
 
 format_trace(BinaryFile, OutFile) ->
     Acc = exp1_init(OutFile),
-    dbg:trace_client(file, BinaryFile, {fun exp1/2, Acc}).
+    dbg:trace_client(file, BinaryFile, {fun exp1/2, Acc}),
+    receive ok -> ok end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -105,9 +137,10 @@ exp0(Else, _Acc) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 exp1_init(OutputPath) ->
-    #state{output_path=OutputPath}.
+    #state{output_path=OutputPath,
+           caller=self()}.
 
-exp1(end_of_trace = _Else, #state{output_path=OutputPath} = OuterS) ->
+exp1(end_of_trace = _Else, #state{output_path=OutputPath, caller=Caller} = OuterS) ->
     (catch erlang:delete(hello_world)),
     PidStates = get(),
     {ok, FH} = file:open(OutputPath, [write, raw, binary, delayed_write]),
@@ -123,6 +156,7 @@ exp1(end_of_trace = _Else, #state{output_path=OutputPath} = OuterS) ->
      || {Pid, #state{acc=Acc} = _S} <- PidStates],
     file:close(FH),
     io:format("finished!\n"),
+    Caller ! ok,
     OuterS;
 exp1(T, #state{output_path=OutputPath} = S) ->
     trace_ts = element(1, T),
