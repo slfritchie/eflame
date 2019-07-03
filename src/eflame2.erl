@@ -9,7 +9,7 @@
          %% 2nd phase: convert binary trace to an ASCII trace
          format_trace/1, format_trace/2]).
 -export([help/0, custom_trace_flags/0]).
--compile(export_all). %% SLF debugging
+%% -compile(export_all). %% SLF debugging
 
 -record(state, {
           output_path="",
