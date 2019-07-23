@@ -1,12 +1,13 @@
 {application, eflame,
  [
-  {description, ""},
+  {description, "eflame"},
   {vsn, git},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib
                  ]},
+  {modules, [eflame2 , eflame , eflame_sup , eflame_app]}, 
   {mod, { eflame_app, []}},
   {env, []}
  ]}.
