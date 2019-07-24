@@ -1,0 +1,10 @@
+.git
+.gitignore
+.idea
+.tool-versions
+Dockerfile
+LICENSE
+README-Riak-Example.md
+README.md
+_build
+*.iml
