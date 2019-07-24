@@ -11,4 +11,6 @@ FROM bryanhuntesl/alpine-erlang:20.3.8.22-fritchies.eflame
 
 COPY --from=0 /opt/app/_build/prod/rel ./rel
 
-RUN find rel
+ENTRYPOINT ["/rel/eflame/bin/eflame"]
+
+CMD ["console"]
