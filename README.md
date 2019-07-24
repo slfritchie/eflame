@@ -1,5 +1,23 @@
 ## eflame
 
+
+# About 
+
+A fork of [Scott Lystig Fritchie](https://github.com/slfritchie/) [eflame](https://github.com/slfritchie/eflame) project.
+
+Modernised, requires a version of Erlang with Fritchies patch.
+
+You can find such an Erlang at the following locations. 
+
+
+https://github.com/bryanhuntesl/otp/tree/feature/20.3.8.22-fritchie-patch (tag OTP-20.3.8.22-fritchie-patch).
+
+You can also find an image (based upon bitwalker/alpine-erlang) on Docker Hub [bryanhuntesl/alpine-erlang:20.3.8.22-fritchies.eflame](https://cloud.docker.com/repository/docker/bryanhuntesl/alpine-erlang/general).
+
+-----
+
+## Scotts notes
+
 [Flame Graphs](http://dtrace.org/blogs/brendan/2011/12/16/flame-graphs/) for Erlang.  Uses `erlang:trace/3` API.
 
 ![screenshot](http://i.imgur.com/XIDAcd3.png)
